@@ -214,18 +214,3 @@ def launch_drawing_app(model=None):
     root = tk.Tk()
     app = DrawingApp(root, model)
     root.mainloop()
-
-
-if __name__ == "__main__":
-    # Try to load model
-    try:
-        from tensorflow import keras
-        model = keras.models.load_model('models/digit_recognition_model.h5')
-        print("Model loaded successfully!")
-    except:
-        print("No model found. Please train a model first.")
-        print("You can still use the drawing app to create test images.")
-        model = None
-
-    launch_drawing_app(model)
-

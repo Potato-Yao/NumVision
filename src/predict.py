@@ -3,7 +3,6 @@ Prediction utilities for digit recognition.
 """
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
 from tensorflow import keras
 
 
@@ -45,17 +44,16 @@ def preprocess_image(image_path, target_size=(28, 28)):
     return img_array
 
 
-def predict_digit(model, image_path, show_plot=True):
+def predict_digit(model, image_path):
     """
     Predict a digit from an image file.
 
     Args:
         model: Trained model
         image_path: Path to the image file
-        show_plot: Whether to display the prediction
 
     Returns:
-        Predicted digit and confidence
+        Predicted digit, confidence, and all probabilities
     """
     # Preprocess the image
     processed_image = preprocess_image(image_path)
@@ -68,55 +66,7 @@ def predict_digit(model, image_path, show_plot=True):
     # Get all probabilities
     all_probs = predictions[0]
 
-    if show_plot:
-        visualize_prediction(
-            processed_image[0].squeeze(),
-            predicted_digit,
-            confidence,
-            all_probs
-        )
-
     return predicted_digit, confidence, all_probs
-
-
-def visualize_prediction(image, predicted_digit, confidence, probabilities):
-    """
-    Visualize the prediction with probability distribution.
-
-    Args:
-        image: Input image (28x28)
-        predicted_digit: Predicted digit
-        confidence: Confidence score
-        probabilities: Probability distribution over all classes
-    """
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-
-    # Display the image
-    ax1.imshow(image, cmap='gray')
-    ax1.set_title(f'Predicted Digit: {predicted_digit}\n'
-                  f'Confidence: {confidence*100:.2f}%',
-                  fontsize=14, fontweight='bold')
-    ax1.axis('off')
-
-    # Display probability distribution
-    digits = np.arange(10)
-    colors = ['green' if i == predicted_digit else 'steelblue' for i in digits]
-
-    ax2.bar(digits, probabilities * 100, color=colors, alpha=0.7, edgecolor='black')
-    ax2.set_xlabel('Digit', fontsize=12)
-    ax2.set_ylabel('Probability (%)', fontsize=12)
-    ax2.set_title('Prediction Probabilities', fontsize=14, fontweight='bold')
-    ax2.set_xticks(digits)
-    ax2.grid(axis='y', alpha=0.3)
-
-    # Add percentage labels on bars
-    for i, prob in enumerate(probabilities):
-        if prob > 0.01:  # Only show labels for probabilities > 1%
-            ax2.text(i, prob*100 + 1, f'{prob*100:.1f}%',
-                    ha='center', va='bottom', fontsize=9)
-
-    plt.tight_layout()
-    plt.show()
 
 
 def batch_predict(model, image_paths):
@@ -134,9 +84,7 @@ def batch_predict(model, image_paths):
 
     for img_path in image_paths:
         try:
-            predicted_digit, confidence, _ = predict_digit(
-                model, img_path, show_plot=False
-            )
+            predicted_digit, confidence, _ = predict_digit(model, img_path)
             results.append({
                 'image_path': img_path,
                 'predicted_digit': int(predicted_digit),
@@ -200,17 +148,4 @@ def load_trained_model(model_path='models/digit_recognition_model.h5'):
     except Exception as e:
         print(f"Error loading model: {str(e)}")
         return None
-
-
-if __name__ == "__main__":
-    # Example usage
-    model_path = 'models/digit_recognition_model.h5'
-
-    # Load model
-    model = load_trained_model(model_path)
-
-    if model is not None:
-        # Example prediction (you would need to provide an image path)
-        print("\nModel ready for predictions!")
-        print("Use predict_digit(model, 'path/to/image.png') to make predictions")
 

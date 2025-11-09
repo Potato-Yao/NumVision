@@ -3,12 +3,11 @@ Training script for the digit recognition model.
 """
 import os
 import numpy as np
-import tensorflow as tf
 from tensorflow import keras
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-from model import DigitRecognitionModel
+from .model import DigitRecognitionModel
+from .gpu_config import configure_for_training
 
 
 def load_and_preprocess_data():
@@ -58,92 +57,10 @@ def load_and_preprocess_data():
     return (x_train, y_train), (x_val, y_val), (x_test, y_test)
 
 
-def plot_training_history(history, save_path='models/training_history.png'):
-    """
-    Plot training and validation accuracy/loss over epochs.
-
-    Args:
-        history: Training history object
-        save_path: Path to save the plot
-    """
-    history_dict = history.history
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-
-    # Plot accuracy
-    ax1.plot(history_dict['accuracy'], label='Training Accuracy', marker='o')
-    ax1.plot(history_dict['val_accuracy'], label='Validation Accuracy', marker='s')
-    ax1.set_title('Model Accuracy', fontsize=14, fontweight='bold')
-    ax1.set_xlabel('Epoch')
-    ax1.set_ylabel('Accuracy')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-
-    # Plot loss
-    ax2.plot(history_dict['loss'], label='Training Loss', marker='o')
-    ax2.plot(history_dict['val_loss'], label='Validation Loss', marker='s')
-    ax2.set_title('Model Loss', fontsize=14, fontweight='bold')
-    ax2.set_xlabel('Epoch')
-    ax2.set_ylabel('Loss')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"\nTraining history plot saved to {save_path}")
-    plt.close()
 
 
-def visualize_predictions(model, x_test, y_test, num_samples=10,
-                         save_path='models/predictions_sample.png'):
-    """
-    Visualize sample predictions from the test set.
 
-    Args:
-        model: Trained model
-        x_test: Test images
-        y_test: True labels
-        num_samples: Number of samples to visualize
-        save_path: Path to save the visualization
-    """
-    # Get random samples
-    indices = np.random.choice(len(x_test), num_samples, replace=False)
-    sample_images = x_test[indices]
-    sample_labels = y_test[indices]
-
-    # Make predictions
-    predictions, probabilities = model.predict(sample_images)
-
-    # Create visualization
-    fig, axes = plt.subplots(2, 5, figsize=(15, 6))
-    axes = axes.ravel()
-
-    for i, (img, true_label, pred_label, probs) in enumerate(
-        zip(sample_images, sample_labels, predictions, probabilities)
-    ):
-        axes[i].imshow(img.squeeze(), cmap='gray')
-
-        # Color based on correctness
-        color = 'green' if pred_label == true_label else 'red'
-        confidence = probs[pred_label] * 100
-
-        axes[i].set_title(
-            f'True: {true_label}, Pred: {pred_label}\n'
-            f'Confidence: {confidence:.1f}%',
-            color=color,
-            fontsize=10
-        )
-        axes[i].axis('off')
-
-    plt.suptitle('Sample Predictions (Green=Correct, Red=Incorrect)',
-                 fontsize=14, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"Prediction samples saved to {save_path}")
-    plt.close()
-
-
-def train_model(epochs=10, batch_size=128, learning_rate=0.001):
+def train_model(epochs=10, batch_size=128, learning_rate=0.001, use_gpu=True, mixed_precision=True):
     """
     Main training function.
 
@@ -151,10 +68,30 @@ def train_model(epochs=10, batch_size=128, learning_rate=0.001):
         epochs: Number of training epochs
         batch_size: Training batch size
         learning_rate: Initial learning rate
+        use_gpu: Whether to use GPU if available (default: True)
+        mixed_precision: Enable mixed precision training for better GPU performance (default: True)
 
     Returns:
         Trained model and test accuracy
     """
+    # Configure GPU settings
+    if use_gpu:
+        print("\n" + "="*60)
+        print("Configuring GPU for Training")
+        print("="*60)
+        gpu_available = configure_for_training(
+            use_mixed_precision=mixed_precision,
+            memory_growth=True
+        )
+
+        # Adjust batch size for GPU if available
+        if gpu_available and batch_size == 128:
+            # GPU can typically handle larger batch sizes for better performance
+            batch_size = 256
+            print(f"Batch size increased to {batch_size} for GPU training")
+    else:
+        print("\nGPU training disabled. Using CPU...")
+
     # Create models directory if it doesn't exist
     os.makedirs('models', exist_ok=True)
     os.makedirs('data', exist_ok=True)
@@ -200,11 +137,6 @@ def train_model(epochs=10, batch_size=128, learning_rate=0.001):
     model_path = 'models/digit_recognition_model.h5'
     digit_model.save_model(model_path)
 
-    # Plot training history
-    plot_training_history(history)
-
-    # Visualize predictions
-    visualize_predictions(digit_model, x_test, y_test)
 
     # Print final results
     print("\n" + "="*60)
