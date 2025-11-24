@@ -3,7 +3,7 @@
 ## Title Page
 Project Title: NumVision – Real-Time Handwritten Digit Recognition and Interaction Platform  
 Course: Programming with Python (Fall 2025)  
-Group Members: <Student Name 1 – Student ID 1>, <Student Name 2 – Student ID 2>, <Student Name 3 – Student ID 3>, <Student Name 4 – Student ID 4>  
+Group Members: <姚雨森 – 1120242312>, <曾梓木 – 1120242250>
 Date: November 9, 2025  
 
 ---
